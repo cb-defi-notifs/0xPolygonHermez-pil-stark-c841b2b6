@@ -1,8 +1,8 @@
 const fs = require("fs");
 const version = require("../package").version;
 
-const F1Field = require("./f3g");
-const starkInfoGen = require("./starkinfo.js");
+const F3g = require("./helpers/f3g.js");
+const starkInfoGen = require("./stark/stark_info.js");
 const { compile } = require("pilcom");
 
 const argv = require("yargs")
@@ -12,10 +12,11 @@ const argv = require("yargs")
     .alias("P", "pilconfig")
     .alias("s", "starkstruct")
     .alias("i", "starkinfo")
+    .string("arity")
     .argv;
 
 async function run() {
-    const F = new F1Field();
+    const F = new F3g();
 
     const pilFile = typeof(argv.pil) === "string" ?  argv.pil.trim() : "mycircuit.pil";
     const pilConfig = typeof(argv.pilconfig) === "string" ? JSON.parse(fs.readFileSync(argv.pilconfig.trim())) : {};
@@ -26,7 +27,11 @@ async function run() {
     const pil = await compile(F, pilFile, null, pilConfig);
     const starkStruct = JSON.parse(await fs.promises.readFile(starkStructFile, "utf8"));
 
-    const starkInfo = starkInfoGen(pil, starkStruct);
+    const options = {};
+    if(starkStruct.verificationHashType === "BN128") {
+        options.arity = Number(argv.arity) || 16;
+    }
+    const starkInfo = starkInfoGen(pil, starkStruct, options);
 
     await fs.promises.writeFile(starkInfoFile, JSON.stringify(starkInfo, null, 1), "utf8");
 

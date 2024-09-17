@@ -1,19 +1,21 @@
-const starkInfoGen = require("./starkinfo.js");
 const ejs = require("ejs");
-const F1Field = require("./f3g");
+const F3g = require("./helpers/f3g.js");
 const fs = require("fs");
 const path = require("path");
+const { log2 } = require("pilcom/src/utils.js");
 
 
-module.exports = async function pil2circom(pil, constRoot, starkInfo, options) {
+module.exports = async function pil2circom(constRoot, starkInfo, options) {
 
     options = options || {};
     starkStruct = starkInfo.starkStruct;
 
-    const F = new F1Field();
+    const F = new F3g();
 
-    setDimensions(starkInfo.verifierCode.first);
-    setDimensions(starkInfo.verifierQueryCode.first);
+    const verifierCode = starkInfo.verifierCode.code;
+    const verifierQueryCode = starkInfo.verifierQueryCode.code;
+    setDimensions(verifierCode);
+    setDimensions(verifierQueryCode);
 
     let template;
     if (starkStruct.verificationHashType == "GL") {
@@ -30,8 +32,10 @@ module.exports = async function pil2circom(pil, constRoot, starkInfo, options) {
         starkInfo: starkInfo,
         starkStruct: starkStruct,
         constRoot: constRoot,
-        pil: pil,
-        options: options
+        options: options,
+        arity: starkInfo.merkleTreeArity,
+        nBitsArity: log2(starkInfo.merkleTreeArity),
+        arityTranscript: 16,
     };
 
     return ejs.render(template ,  obj);
